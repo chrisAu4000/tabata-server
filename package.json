@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon --debug src/index.js",
-    "test": "mocha test/index.js"
+    "test": "mocha test/user-controller-test.js"
   },
   "repository": {
     "type": "git",
@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/chrisAu4000/tabata-server#readme",
   "dependencies": {
+    "bcrypt": "^1.0.2",
     "body-parser": "^1.16.0",
     "cookie-parser": "^1.4.3",
     "data.either": "^1.5.0",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "mocha": "^3.2.0",
+    "mockgoose": "^6.0.8",
     "nodemon": "^1.11.0"
   }
 }
