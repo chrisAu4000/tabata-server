@@ -35,7 +35,7 @@ if (!process.env.PRODUCTION) {
 
 const main = db.connect(mongoose, 'mongodb://localhost:27017/tabata')
   .chain(db => new Task((rej, res) => {
-    routes({user: User(db)})
+    routes(app, { user: User({db}) })
     server.listen(port, () => res(`Listen on port: ${port}`))
 }))
 
