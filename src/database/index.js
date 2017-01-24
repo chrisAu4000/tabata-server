@@ -18,18 +18,6 @@ const iface = (db) => {
 
   const createUnique = curry((key, model, data) => {
     return findOne(model, assoc(key, data[key], {}))
-
-      // .chain(maybe => {
-      //   return new Task((rej, res) => {
-      //     return maybe => maybe.getOrElse()
-      //       ? res()
-      //       : rej({name: 'ValidationError', message: `unique key ${key} already exists.`})
-      //     //   cata({
-      //     //   Just: rej({name: 'ValidationError', message: `unique key ${key} already exists.`}),
-      //     //   Nothing: res()
-      //     // })
-      //   })
-      // })
       .chain(maybe => {
         return maybe.isNothing
           ? create(model, data)
