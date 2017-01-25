@@ -1,27 +1,28 @@
 const Task = require('data.task')
 const Validation = require('data.validation')
-const {sequence, objOf, assoc, reduce} = require('ramda')
+const {sequence, objOf, assoc, reduce, curry, prop, compose} = require('ramda')
 const {hash, compare} = require('../crypto')
+const {validate, isEqual, match} = require('../validation')
 
-const isEqual = (a, b) => new Task((rej, res) => a === b ? res(b) : rej('Not Equal'))
-
-const keyValToObj = reduce((acc, curr) => assoc(curr.key, curr.value, acc),{})
+const emailRegEx = /^[\w\.]+@[a-zA-Z_-]+?\.[a-zA-Z]{2,10}$/g
+const passwordRegEx = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).{8,16}$/g
+const user = curry((name, email, password) => ({name, email, password}))
+const validPassword = isEqual('password and verification.')
+const validEmail = match(emailRegEx, 'E-Mail of invalid fromat.')
 
 const User = ({db}) => {
   const register = ({name, email, password, verification}) => {
-    return sequence(
-      Task.of,
-      [
-        Task.of(name).map(assoc('value')).ap(Task.of({key: 'name'})),
-        Task.of(email).map(assoc('value')).ap(Task.of({key: 'email'})),
-        isEqual(verification, password)
-          .chain(hash)
-          .map(assoc('value'))
-          .ap(Task.of({key: 'password'}))
-      ]
-    )
-    .map(keyValToObj)
-    .chain(db.createUnique('email', 'User'))
+    const validUser = Validation.of(user)
+      .ap(Validation.of(name))
+      .ap(validEmail(email))
+      .ap(validPassword(verification, password))
+    return new Task((rej, res) => {
+      validUser.isFailure
+        ? rej(validUser.merge())
+        : res(validUser.get())
+      })
+      .chain(hash('password'))
+      .chain(db.createUnique('email', 'User'))
   }
 
   const find = (email) => {

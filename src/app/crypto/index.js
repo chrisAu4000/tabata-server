@@ -1,19 +1,24 @@
 const Task = require('data.task')
 const Either = require('data.either')
 const bcrypt = require('bcrypt')
+const {curry, assoc} = require('ramda')
 
-const hash = (password) => new Task((rej, res) => {
-  bcrypt.hash(password, 10, (err, hash) => err ? rej(err) : res(hash))
-})
+const hash = curry((key, value) => new Task((rej, res) => {
+  bcrypt.hash(value[key], 10, (err, hash) =>
+    err
+      ? rej(err)
+      : res(assoc(key, hash, value))
+  )
+}))
 
 const compare = (password, hash) => new Task((rej, res) =>
   bcrypt.compare(password, hash, (err, isEqual) =>
-      err
-    ? rej(err)
-    : res(isEqual
-      ? Right('Password correct')
-      : Left('Password not correct')
-    )
+    err
+      ? rej(err)
+      : res(isEqual
+        ? Right('Password correct')
+        : Left('Password not correct')
+      )
   )
 )
 
