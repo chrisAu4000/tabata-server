@@ -20,6 +20,7 @@ const App = (app, models) => {
   })
   app.post(version + '/user/register', (req, res) => {
     return user.register(req.body).fork(sendError(res), (user) => {
+      console.log(user)
       return res.json(user)
     })
   })

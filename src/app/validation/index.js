@@ -13,4 +13,16 @@ const match = curry((regEx, msg, value) => {
     : Failure([msg])
 })
 
-module.exports = {isEqual, match}
+const minLength = curry((length, message, value) =>
+  value.length > length
+    ? Success(value)
+    : Failure([message])
+)
+
+const maxLength = curry((length, message, value) =>
+  value.length < length
+    ? Success(value)
+    : Failure([message])
+)
+
+module.exports = {isEqual, match, minLength, maxLength}

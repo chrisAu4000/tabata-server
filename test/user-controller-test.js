@@ -24,8 +24,8 @@ describe('User-Controller', function() {
     const data = {
       name: 'testuser',
       email: 'test@test.com',
-      password: 'testpassword',
-      verification: 'testpassword'
+      password: 't3stPassw0rd',
+      verification: 't3stPassw0rd'
     }
 
     it('should insert a user', function(done) {
@@ -48,22 +48,27 @@ describe('User-Controller', function() {
     })
 
     it('should throw an error if two users with same email are created', function(done) {
-      try {
-        user.register(data).fork(assert.isNull, function(doc) {
-          user.register(data).fork(function(error) {
-            assert.deepEqual(error, {name: 'ValidationError', message: 'unique key email already exists.'})
+      user.register(data).fork(assert.isNull, function(doc) {
+        user.register(data).fork(function(error) {
+          try {
+            assert.deepEqual(error, {
+              name: 'ValidationError',
+              key: 'email',
+              message: 'unique key email already exists.',
+            })
             done()
-          }, function(doc) {
-            try {
-              assert.isNull(doc)
-            } catch(err) {
-              done(err)
-            }
-          })
+          } catch(error) {
+            done(error)
+          }
+        }, function(doc) {
+          try {
+            assert.isNull(doc)
+            done()
+          } catch(err) {
+            done(err)
+          }
         })
-      } catch(err) {
-        done(err)
-      }
+      })
     })
   })
 })

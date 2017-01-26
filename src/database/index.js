@@ -21,7 +21,11 @@ const iface = (db) => {
       .chain(maybe => {
         return maybe.isNothing
           ? create(model, data)
-          : Task.rejected({name: 'ValidationError', message: `unique key ${key} already exists.`})
+          : Task.rejected({
+            name: 'ValidationError',
+            key: key,
+            message: `unique key ${key} already exists.`
+          })
       })
   })
 
