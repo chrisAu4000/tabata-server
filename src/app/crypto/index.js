@@ -1,5 +1,5 @@
 const Task = require('data.task')
-const Either = require('data.either')
+const {Right, Left} = require('data.either')
 const bcrypt = require('bcrypt')
 const {curry, assoc} = require('ramda')
 
@@ -11,7 +11,7 @@ const hash = curry((key, value) => new Task((rej, res) => {
   )
 }))
 
-const compare = (password, hash) => new Task((rej, res) =>
+const compare = curry((password, hash) => new Task((rej, res) =>
   bcrypt.compare(password, hash, (err, isEqual) =>
     err
       ? rej(err)
@@ -20,6 +20,6 @@ const compare = (password, hash) => new Task((rej, res) =>
         : Left('Password not correct')
       )
   )
-)
+))
 
 module.exports = {hash, compare}
