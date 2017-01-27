@@ -1,6 +1,6 @@
 const Task = require('data.task')
 const Validation = require('data.validation')
-const {curry} = require('ramda')
+const {curry, prop} = require('ramda')
 const {hash, compare} = require('../crypto')
 const {isEqual, match, minLength, maxLength, taskFromValidation} = require('../validation')
 const {validationError} = require('../error/validationError')
@@ -34,13 +34,33 @@ const validUser = ({name, email, password, verification}) =>
   .ap(validateEmail(email))
   .ap(validatePassword(verification, password))
 
-const User = ({db}) => {
+const prepareToRender = curry((replyUrl, user) => {
+  return {
+    url: replyUrl,
+    user: {
+      _id: user._id,
+      name: user.name,
+    }
+  }
+})
+
+const User = ({db, email}) => {
   const register = (user) => {
     return taskFromValidation(validUser(user))
     .chain(hash('password'))
     .chain(db.createUnique('email', 'User'))
+    .map(prepareToRender('http://localhost:3000/'))
+    .chain(email.renderEmail('confirmation-email'))
+    .map(prop('html'))
+    .chain(email.send('Tabata Confirmation', user.email))
   }
-
+  register({
+    name: 'Christian',
+    email: 'auer.christian4000@googlemail.com',
+    password: 'Passw0rd',
+    verification: 'Passw0rd'
+  })
+  .fork(console.error, console.log)
   const find = (email) => {
     return db.findOne('User', {email: email})
   }

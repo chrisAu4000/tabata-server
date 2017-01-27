@@ -40,7 +40,7 @@ const connect = (driver, url) => new Task((rej, res) => {
   models
     .forEach(initializeModel(driver))
   driver
-    .connect(url, (err) => err ? rej(err) : undefined)
+    .connect(url, (err) => err ? rej([err]) : undefined)
     .connection.once('open', () => res(iface(driver)))
 })
 

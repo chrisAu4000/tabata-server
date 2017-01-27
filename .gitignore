@@ -31,4 +31,4 @@ bower_components/
 .sass-cache
 *.css.map
 build/
-dist/
+sendgrid.env

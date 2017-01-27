@@ -8,4 +8,4 @@ const validationError = curry((key, message) => {
   }
 })
 
-module.exports = {validationError}
+module.exports = validationError
