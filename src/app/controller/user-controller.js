@@ -1,14 +1,15 @@
 const Task = require('data.task')
 const Validation = require('data.validation')
-const {sequence, objOf, assoc, reduce, curry, prop, compose} = require('ramda')
+const {curry} = require('ramda')
 const {hash, compare} = require('../crypto')
-const {isEqual, match, minLength, maxLength} = require('../validation')
+const {isEqual, match, minLength, maxLength, taskFromValidation} = require('../validation')
 const {validationError} = require('../error/validationError')
 
 const emailRegEx = /^[\w\.]+@[a-zA-Z_-]+?\.[a-zA-Z]{2,10}$/g
 const passwordRegEx = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).{8,16}$/g
 
 const user = curry((name, email, password) => ({name, email, password}))
+
 const validatePassword = (verification, password) =>
   Validation.of(curry((a,b,c,d) => a))
   .ap(isEqual('Password and verification must be equal.', verification, password))
@@ -32,11 +33,6 @@ const validUser = ({name, email, password, verification}) =>
   .ap(validateName(name))
   .ap(validateEmail(email))
   .ap(validatePassword(verification, password))
-const taskFromValidation = (validation) => new Task((rej, res) => {
-  return validation.isFailure
-    ? rej(validation.merge())
-    : res(validation.get())
-})
 
 const User = ({db}) => {
   const register = (user) => {

@@ -1,5 +1,6 @@
 const {curry} = require('ramda')
 const {Success, Failure} = require('data.validation')
+const Task = require('data.task')
 
 const isEqual = curry((message, a, b) => {
   return a === b
@@ -25,4 +26,10 @@ const maxLength = curry((length, message, value) =>
     : Failure([message])
 )
 
-module.exports = {isEqual, match, minLength, maxLength}
+const taskFromValidation = (validation) => new Task((rej, res) => {
+  return validation.isFailure
+    ? rej(validation.merge())
+    : res(validation.get())
+})
+
+module.exports = {isEqual, match, minLength, maxLength, taskFromValidation}
