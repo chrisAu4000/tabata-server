@@ -1,20 +1,20 @@
 const {curry} = require('ramda')
 const {Success, Failure} = require('data.validation')
 
-const isEqual = curry((msg, a, b) => {
+const isEqual = curry((message, a, b) => {
   return a === b
     ? Success(b)
-    : Failure([msg])
+    : Failure([message])
 })
 
-const match = curry((regEx, msg, value) => {
+const match = curry((regEx, message, value) => {
   return value.match(regEx)
     ? Success(value)
-    : Failure([msg])
+    : Failure([message])
 })
 
 const minLength = curry((length, message, value) =>
-  value.length > length
+  value.length >= length
     ? Success(value)
     : Failure([message])
 )
