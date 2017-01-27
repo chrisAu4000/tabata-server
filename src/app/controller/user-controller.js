@@ -54,13 +54,7 @@ const User = ({db, email}) => {
     .map(prop('html'))
     .chain(email.send('Tabata Confirmation', user.email))
   }
-  register({
-    name: 'Christian',
-    email: 'auer.christian4000@googlemail.com',
-    password: 'Passw0rd',
-    verification: 'Passw0rd'
-  })
-  .fork(console.error, console.log)
+  
   const find = (email) => {
     return db.findOne('User', {email: email})
   }
