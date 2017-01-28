@@ -15,8 +15,8 @@ const match = curry((regEx, message, value) => {
 })
 
 const minLength = curry((length, message, value) =>
-  return value
-    && typeof value.length === 'number' 
+  value
+    && typeof value.length === 'number'
     && value.length >= length
     ? Success(value)
     : Failure([message])
