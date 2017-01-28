@@ -1,6 +1,7 @@
 const Task = require('data.task')
 const {fromNullable} = require('data.maybe')
 const {curry, compose, assoc, map} = require('ramda')
+const ValidationError = require('../app/error/validationError')
 const models = require('./models')
 
 const iface = (db) => {
@@ -8,28 +9,27 @@ const iface = (db) => {
     db.model(model).create(data).then(res, rej)
   ))
 
-  const find = curry((model, data) => new Task((rej, res) =>
-    db.model(model).find(data).then(compose(res, fromNullable), rej)
+  const createUnique = curry((key, model, data) => 
+    findOne(model, assoc(key, data[key], {}))
+      .chain(maybe => maybe.isNothing
+        ? create(model, data)
+        : Task.rejected(ValidationError(key, `unique key ${key} already exists.`))
+      )
+  )
+
+  const find = curry((model, query) => new Task((rej, res) =>
+    db.model(model).find(query).then(compose(res, fromNullable), rej)
   ))
 
-  const findOne = curry((model, data) => new Task((rej, res) =>
-    db.model(model).findOne(data).then(compose(res, fromNullable), rej)
+  const findOne = curry((model, query) => new Task((rej, res) =>
+    db.model(model).findOne(query).then(compose(res, fromNullable), rej)
   ))
 
-  const createUnique = curry((key, model, data) => {
-    return findOne(model, assoc(key, data[key], {}))
-      .chain(maybe => {
-        return maybe.isNothing
-          ? create(model, data)
-          : Task.rejected({
-            name: 'ValidationError',
-            key: key,
-            message: `unique key ${key} already exists.`
-          })
-      })
-  })
+  const removeOne = curry((model, query) => new Task((rej, res) =>
+    db.model(model).findOneAndRemove(query).then(res, rej)
+  ))
 
-  return {create, createUnique, findOne}
+  return {create, createUnique, find, findOne, removeOne}
 }
 
 const connect = (driver, url) => new Task((rej, res) => {

@@ -3,7 +3,8 @@ const Validation = require('data.validation')
 const {curry, prop} = require('ramda')
 const {hash, compare} = require('../crypto')
 const {isEqual, match, minLength, maxLength, taskFromValidation} = require('../validation')
-const {validationError} = require('../error/validationError')
+const validationError = require('../error/validationError')
+const emailError = require('../error/emailError')
 
 const emailRegEx = /^[\w\.]+@[a-zA-Z_-]+?\.[a-zA-Z]{2,10}$/g
 const passwordRegEx = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).{8,16}$/g
@@ -44,6 +45,13 @@ const prepareToRender = curry((replyUrl, user) => {
   }
 })
 
+const sendConfirmationEMail = curry((db, email, userEmail, template) =>
+  email.send('Tabata Confirmation', userEmail, template)
+  .orElse((error) =>
+    db.removeOne('User', {email: userEmail})
+      .chain((user) => Task.rejected(error)))
+)
+
 const User = ({db, email}) => {
   const register = (user) => {
     return taskFromValidation(validUser(user))
@@ -52,9 +60,15 @@ const User = ({db, email}) => {
     .map(prepareToRender('http://localhost:3000/'))
     .chain(email.renderEmail('confirmation-email'))
     .map(prop('html'))
-    .chain(email.send('Tabata Confirmation', user.email))
+    .chain(sendConfirmationEMail(db, email, user.email))
   }
-  
+  register({
+    name: 'Christian',
+    email: 'auer.christian4000@googlemail.com',
+    password: 'TestPassW6',
+    verification: 'TestPassW6'
+  }).fork((error) => console.error('ERROR: '+error.name+' '+error.message), console.log)
+
   const find = (email) => {
     return db.findOne('User', {email: email})
   }

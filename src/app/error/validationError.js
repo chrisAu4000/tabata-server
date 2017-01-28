@@ -1,6 +1,6 @@
 const {curry} = require('ramda')
 
-const validationError = curry((key, message) => {
+const ValidationError = curry((key, message) => {
   return {
     name: 'ValidationError',
     key: key,
@@ -8,4 +8,4 @@ const validationError = curry((key, message) => {
   }
 })
 
-module.exports = validationError
+module.exports = ValidationError
