@@ -62,12 +62,6 @@ const User = ({db, email}) => {
     .map(prop('html'))
     .chain(sendConfirmationEMail(db, email, user.email))
   }
-  register({
-    name: 'Christian',
-    email: 'auer.christian4000@googlemail.com',
-    password: 'TestPassW6',
-    verification: 'TestPassW6'
-  }).fork((error) => console.error('ERROR: '+error.name+' '+error.message), console.log)
 
   const find = (email) => {
     return db.findOne('User', {email: email})
