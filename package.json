@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon --debug src/index.js",
+    "dev": "nodemon --ignore src/app/client --ignore test/ --debug src/index.js",
     "test": "mocha test/*.js"
   },
   "repository": {
@@ -23,6 +23,9 @@
   },
   "homepage": "https://github.com/chrisAu4000/tabata-server#readme",
   "dependencies": {
+    "babel-plugin-inferno": "^1.7.0",
+    "babel-plugin-syntax-jsx": "^6.18.0",
+    "babel-register": "^6.22.0",
     "bcrypt": "^1.0.2",
     "body-parser": "^1.16.0",
     "cookie-parser": "^1.4.3",
@@ -34,9 +37,12 @@
     "express": "^4.14.0",
     "express-session": "^1.15.0",
     "handlebars": "^4.0.6",
+    "inferno": "^1.2.2",
+    "inferno-component": "^1.2.2",
+    "inferno-create-element": "^1.2.2",
+    "inferno-server": "^1.2.2",
     "mongoose": "^4.7.7",
     "morgan": "^1.7.0",
-    "nodemailer": "^2.7.2",
     "ramda": "^0.23.0",
     "sendgrid": "^4.7.1"
   },

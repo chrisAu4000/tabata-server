@@ -9,7 +9,7 @@ const iface = (db) => {
     db.model(model).create(data).then(res, rej)
   ))
 
-  const createUnique = curry((key, model, data) => 
+  const createUnique = curry((key, model, data) =>
     findOne(model, assoc(key, data[key], {}))
       .chain(maybe => maybe.isNothing
         ? create(model, data)
@@ -25,11 +25,30 @@ const iface = (db) => {
     db.model(model).findOne(query).then(compose(res, fromNullable), rej)
   ))
 
+  const findById = curry((model, id) => new Task((rej, res) =>
+    db.model(model).findById(id).then(compose(res, fromNullable), rej)
+  ))
+
+  const updateById = curry((model, data, id) => new Task((rej, res) =>
+    db.model(model)
+      .findByIdAndUpdate(id, {$set: data}, {runValidators: true})
+      .then(fromNullable, rej)
+      .then(mbDoc => res(mbDoc.map(doc => Object.assign({}, doc._doc, data))))
+  ))
+
   const removeOne = curry((model, query) => new Task((rej, res) =>
     db.model(model).findOneAndRemove(query).then(res, rej)
   ))
 
-  return {create, createUnique, find, findOne, removeOne}
+  return {
+    create,
+    createUnique,
+    find,
+    findOne,
+    findById,
+    updateById,
+    removeOne
+  }
 }
 
 const connect = (driver, url) => new Task((rej, res) => {

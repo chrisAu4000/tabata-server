@@ -1,7 +1,7 @@
 const {assert} = require('chai')
 const {Left, Right} = require('data.either')
 const {hash, compare} = require('../src/app/crypto')
-const {send} = require('../src/app/email')
+// const {send} = require('../src/app/email')
 
 describe('Crypto', function() {
   describe('#hash', function() {

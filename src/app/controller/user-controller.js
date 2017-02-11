@@ -52,22 +52,40 @@ const sendConfirmationEMail = curry((db, email, userEmail, template) =>
       .chain((user) => Task.rejected(error)))
 )
 
+const debug = function(x) {
+  console.log(x)
+  return x
+}
+
 const User = ({db, email}) => {
-  const register = (user) => {
+  const registration = (user) => {
     return taskFromValidation(validUser(user))
     .chain(hash('password'))
     .chain(db.createUnique('email', 'User'))
-    .map(prepareToRender('http://localhost:3000/'))
+    .map(prepareToRender('http://localhost:3000/v1/user/confirm/'))
     .chain(email.renderEmail('confirmation-email'))
     .map(prop('html'))
     .chain(sendConfirmationEMail(db, email, user.email))
   }
-
+  const confirmation = (id) => {
+    return db.updateById('User', {verified: true}, id)
+    .chain(maybeUser => maybeUser
+      .cata({
+        Just: Task.of,
+        Nothing: () => Task.rejected({
+          name: 'Not-Found',
+          message: ['Can not find user.']
+        })
+      })
+    )
+    // .map(user => Object.assign({}, user, {verified: true}))
+    // .chain(verifyUser(db))
+  }
   const find = (email) => {
     return db.findOne('User', {email: email})
   }
 
-  return {register, find}
+  return {registration, confirmation, find}
 }
 
 

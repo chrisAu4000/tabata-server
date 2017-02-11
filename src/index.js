@@ -1,3 +1,6 @@
+require('babel-register')({
+  plugins: ["babel-plugin-syntax-jsx", "babel-plugin-inferno"]
+})
 const path = require('path')
 const Task = require('data.task')
 const express = require('express')
@@ -13,17 +16,7 @@ const port = 3000
 const User = require('./app/controller/user-controller')
 const db = require('./database')
 const email = require('./email')
-
-app.use('/static', express.static(path.join(__dirname, 'public')))
-app.use(morgan('dev'))
-app.use(bodyParser.urlencoded({extended: false}))
-app.use(bodyParser.json())
-app.use(cookieParser())
-app.use(expressSession({
-  secret: 'development',
-  resave: false,
-  saveUninitialized: false
-}))
+const config = require('../config.json')
 
 if (!process.env.PRODUCTION) {
   app.use((req, res, next) => {
@@ -34,11 +27,22 @@ if (!process.env.PRODUCTION) {
   })
 }
 
+app.use(express.static(path.join(__dirname, 'public')))
+app.use(morgan('dev'))
+app.use(bodyParser.urlencoded({extended: false}))
+app.use(bodyParser.json())
+app.use(cookieParser())
+app.use(expressSession({
+  secret: 'development',
+  resave: false,
+  saveUninitialized: false
+}))
+
 const interfaces = db => email => ({db, email})
 
 const main = Task.of(interfaces)
   .ap(db.connect(mongoose, 'mongodb://localhost:27017/tabata'))
-  .ap(email.connect(process.env.SENDGRID_API_KEY, 'noreply@tabata.de'))
+  .ap(email.connect(config.SENDGRID_API_KEY, 'noreply@tabata.de'))
   .chain(({db, email}) => new Task((rej, res) => {
     routes(app, { user: User({db, email}) })
     server.listen(port, () => res(`Listen on port: ${port}`))
