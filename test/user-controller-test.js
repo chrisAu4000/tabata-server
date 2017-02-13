@@ -23,16 +23,6 @@ function EmailMock() {
   }
 }
 
-// EmailMock.prototype.renderEmail = curry((template, params) => {
-//   this.renderEmailCalled = true
-//   console.log(this)
-//   return Task.of('TEMPLATE-STRING')
-// })
-//
-// EmailMock.prototype.send = curry((subject, to, template) => {
-//   this.sendCalled = true
-//   return Task.of('Success')
-// })
 let user = undefined
 let emailMock = new EmailMock()
 
@@ -47,7 +37,7 @@ before(function(done) {
 })
 
 describe('User-Controller', function() {
-  describe('#register', function() {
+  describe('#registration', function() {
     beforeEach(function(done) {
       renderEmailCalled = false
       sendCalled = false
@@ -124,5 +114,9 @@ describe('User-Controller', function() {
         }
       })
     })
+  })
+
+  describe('#confirmation', function() {
+
   })
 })

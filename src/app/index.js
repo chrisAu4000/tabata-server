@@ -11,7 +11,7 @@ const sendError = curry((res, error) => {
 
 const sendNotFound = (res) => () => res.status(404).end()
 
-const App = (app, models) => {
+const App = (app, passport, models) => {
   const user = models.user
 
   // app.get(version + '/', (req, res) => {
@@ -28,16 +28,22 @@ const App = (app, models) => {
     })
   })
   app.post(version + '/user/register', (req, res) => {
-    return user.registration(req.body).fork(sendError(res), (user) => {
-      console.log(user)
-      return res.json(user)
-    })
+    return user.registration(req.body).fork(
+      sendError(res),
+      (user) => res.json(user)
+    )
   })
   app.get(version + '/user/confirm/:id', (req, res) => {
-    return user.confirmation(req.params.id).fork(sendError(res), (user) => {
-      console.log(user)
-      return res.json(user)
-    })
+    return user.confirmation(req.params.id).fork(
+      sendError(res),
+      (user) => res.json(user)
+    )
+  })
+  app.post(version + '/user/login',
+    passport.authenticate('user-local', {failureFlash: true}),
+    (req, res) => {
+    console.log(req.session)
+    return res.json({})
   })
 }
 

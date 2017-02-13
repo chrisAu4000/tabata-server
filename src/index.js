@@ -11,6 +11,8 @@ const morgan = require('morgan')
 const bodyParser = require('body-parser')
 const expressSession = require('express-session')
 const cookieParser = require('cookie-parser')
+const passport = require('passport')
+const flash = require('connect-flash')
 const routes = require('./app')
 const port = 3000
 const User = require('./app/controller/user-controller')
@@ -26,7 +28,6 @@ if (!process.env.PRODUCTION) {
   	next();
   })
 }
-
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(morgan('dev'))
 app.use(bodyParser.urlencoded({extended: false}))
@@ -37,6 +38,9 @@ app.use(expressSession({
   resave: false,
   saveUninitialized: false
 }))
+app.use(passport.initialize())
+app.use(passport.session())
+app.use(flash())
 
 const interfaces = db => email => ({db, email})
 
@@ -44,7 +48,12 @@ const main = Task.of(interfaces)
   .ap(db.connect(mongoose, 'mongodb://localhost:27017/tabata'))
   .ap(email.connect(config.SENDGRID_API_KEY, 'noreply@tabata.de'))
   .chain(({db, email}) => new Task((rej, res) => {
-    routes(app, { user: User({db, email}) })
+    const user = User({db, email, passport})
+    passport.serializeUser(user.serialize)
+    passport.deserializeUser(user.deserialize)
+    passport.use('user-local', user.authenticate)
+    routes(app, passport, { user: user })
+
     server.listen(port, () => res(`Listen on port: ${port}`))
 }))
 

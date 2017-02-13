@@ -1,6 +1,8 @@
 const Task = require('data.task')
 const Validation = require('data.validation')
-const {curry, prop} = require('ramda')
+const {Right, Left} = require('data.either')
+const {curry, prop, compose} = require('ramda')
+const LocalStrategie = require('passport-local').Strategy
 const {hash, compare} = require('../crypto')
 const {isEqual, match, minLength, maxLength, taskFromValidation} = require('../validation')
 const validationError = require('../error/validationError')
@@ -56,8 +58,56 @@ const debug = function(x) {
   console.log(x)
   return x
 }
+const userNotFoundError = {
+  name: 'Not-Found',
+  message: ['Can not find user.']
+}
+const comparePasswords = curry((password, user) =>
+  compare(password, user.password)
+    .chain(res => res.cata({
+      Right: () => Task.of(user),
+      Left: () => Task.rejected('Incorrect password.')
+    }))
+)
+const isVerified = (user) =>
+  user.verified === true
+  ? Right(user)
+  : Left('User is not verified.')
 
-const User = ({db, email}) => {
+const User = ({db, email, passport}) => {
+  // AUTHENTIFICATION MIDDLEWARE
+  const serialize = (user, done) => {
+    done(null, user._id)
+  }
+  const deserialize = (id, done) => {
+    console.log('deserializeUser')
+    console.log(id)
+    return db.findById('User', id)
+      .fork(done, maybeUser => maybeUser
+        .cata({
+          Just: (user) => done(null, user),
+          Nothing: ()  => done(null, null)
+        })
+      )
+  }
+  const authenticate = new LocalStrategie({
+    usernameField: 'email'
+    }, (email, password, done) =>
+      db.findOne('User', {email: email})
+      .chain(maybeUser => maybeUser.cata({
+        Just: compose(Task.of, isVerified),
+        Nothing: () => Task.rejected('Incorrect username.')
+      }))
+      .chain(isVerified => isVerified.cata({
+        Right: comparePasswords(password),
+        Left: () => Task.rejected('E-Mail is not verified.')
+      }))
+      .fork(
+        (error) => done(null, false, {message: error}),
+        (user) => done(null, user)
+      )
+  )
+
   const registration = (user) => {
     return taskFromValidation(validUser(user))
     .chain(hash('password'))
@@ -72,20 +122,21 @@ const User = ({db, email}) => {
     .chain(maybeUser => maybeUser
       .cata({
         Just: Task.of,
-        Nothing: () => Task.rejected({
-          name: 'Not-Found',
-          message: ['Can not find user.']
-        })
+        Nothing: () => Task.rejected(userNotFoundError)
       })
     )
-    // .map(user => Object.assign({}, user, {verified: true}))
-    // .chain(verifyUser(db))
   }
   const find = (email) => {
     return db.findOne('User', {email: email})
   }
 
-  return {registration, confirmation, find}
+  return {
+    registration,
+    confirmation,
+    serialize,
+    deserialize,
+    authenticate,
+  }
 }
 
 

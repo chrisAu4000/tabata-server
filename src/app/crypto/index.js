@@ -10,7 +10,7 @@ const hash = curry((key, value) => new Task((rej, res) => {
       : res(assoc(key, hash, value))
   )
 }))
-
+// compare :: String -> String -> Task Error Either String String
 const compare = curry((password, hash) => new Task((rej, res) =>
   bcrypt.compare(password, hash, (err, isEqual) =>
     err
