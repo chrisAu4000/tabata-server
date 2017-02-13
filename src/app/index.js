@@ -11,6 +11,11 @@ const sendError = curry((res, error) => {
 
 const sendNotFound = (res) => () => res.status(404).end()
 
+const authenticationMiddleware = () => (req, res, next) => {
+  if (req.isAuthenticated()) return next()
+  return res.status(401).end()
+}
+
 const App = (app, passport, models) => {
   const user = models.user
 
@@ -42,8 +47,12 @@ const App = (app, passport, models) => {
   app.post(version + '/user/login',
     passport.authenticate('user-local', {failureFlash: true}),
     (req, res) => {
-    console.log(req.session)
     return res.json({})
+  })
+  app.post(version + '/user/logout',
+    authenticationMiddleware(), (req, res) => {
+    req.logout()
+    return res.status(200).end()
   })
 }
 
