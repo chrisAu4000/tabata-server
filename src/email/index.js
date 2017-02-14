@@ -38,6 +38,7 @@ const iface = ({key, from}) => {
   const renderEmail = curry((templateName, params) => new Task((rej, res) => {
     const templatePath = path.join(templatesDir, templateName)
     const email = new EmailTemplate(templatePath)
+    console.log(params)
     return email.render(params, (error, result) => {
       if (error) {
         return rej(error)

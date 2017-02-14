@@ -44,16 +44,36 @@ const App = (app, passport, models) => {
       (user) => res.json(user)
     )
   })
+  app.post(version + '/user/resetPasswordReq', (req, res) => {
+    return user.sendResetPasswordEmail(req.body).fork(
+      sendError(res),
+      () => res.status(200).end()
+    )
+  })
+  app.get(version + '/user/resetPassword/:token', (req, res) => {
+    return user.resetPasswordPage(req.params.query).fork(
+      (error) => {/*TODO: render ErrorPage*/},
+      (user) => {/* TODO: render ResetPasswordForm*/}
+    )
+  })
+  app.post(version + '/user/resetPassword', (req, res) => {
+    return user.resetPassword(req.body).fork(
+      error => error.status ? res.status(error.status).end() : sendError(res, error),
+      user => res.json(user)
+    )
+  })
+  // AUTHORISED ONLY
   app.post(version + '/user/login',
     passport.authenticate('user-local', {failureFlash: true}),
     (req, res) => {
-    return res.json({})
+    return res.status(200).end()
   })
   app.post(version + '/user/logout',
     authenticationMiddleware(), (req, res) => {
     req.logout()
     return res.status(200).end()
   })
+
 }
 
 module.exports = App

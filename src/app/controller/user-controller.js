@@ -1,7 +1,8 @@
 const Task = require('data.task')
 const Validation = require('data.validation')
 const {Right, Left} = require('data.either')
-const {curry, prop, compose} = require('ramda')
+const {Just, Nothing} = require('data.maybe')
+const {curry, prop, compose, assoc} = require('ramda')
 const LocalStrategie = require('passport-local').Strategy
 const {hash, compare} = require('../crypto')
 const {isEqual, match, minLength, maxLength, taskFromValidation} = require('../validation')
@@ -62,6 +63,10 @@ const userNotFoundError = {
   name: 'Not-Found',
   message: ['Can not find user.']
 }
+const maybeUserToTask = maybeUser => maybeUser.cata({
+  Just: Task.of,
+  Nothing: () => Task.rejected(userNotFoundError)
+})
 const comparePasswords = curry((password, user) =>
   compare(password, user.password)
     .chain(res => res.cata({
@@ -74,14 +79,12 @@ const isVerified = (user) =>
   ? Right(user)
   : Left('User is not verified.')
 
-const User = ({db, email, passport}) => {
+const User = ({db, email}) => {
   // AUTHENTIFICATION MIDDLEWARE
   const serialize = (user, done) => {
     done(null, user._id)
   }
   const deserialize = (id, done) => {
-    console.log('deserializeUser')
-    console.log(id)
     return db.findById('User', id)
       .fork(done, maybeUser => maybeUser
         .cata({
@@ -107,35 +110,74 @@ const User = ({db, email, passport}) => {
         (user) => done(null, user)
       )
   )
-
+  // REGISTRATION
   const registration = (user) => {
     return taskFromValidation(validUser(user))
     .chain(hash('password'))
     .chain(db.createUnique('email', 'User'))
-    .map(prepareToRender('http://localhost:3000/v1/user/confirm/'))
+    .map(assoc('url', 'http://localhost:3000/v1/user/confirm/'))
     .chain(email.renderEmail('confirmation-email'))
     .map(prop('html'))
     .chain(sendConfirmationEMail(db, email, user.email))
   }
   const confirmation = (id) => {
     return db.updateById('User', {verified: true}, id)
-    .chain(maybeUser => maybeUser
-      .cata({
-        Just: Task.of,
-        Nothing: () => Task.rejected(userNotFoundError)
-      })
+    .chain(maybeUserToTask)
+  }
+  const sendResetPasswordEmail = (user) => {
+    return Task.of(curry((token, id) => Object.assign({}, token, {id: id})))
+    .ap(hash('token', {token: user.email}))
+    .ap(db.findOne('User', {email: user.email})
+      .chain(maybeUserToTask)
+      .map(prop('_id'))
     )
+    .chain(({id, token}) => db.updateById('User', {token: token}, id))
+    .chain(maybeUserToTask)
+    .map(assoc('url', 'http://localhost:3000/v1/user/resetPassword/'))
+    .chain(email.renderEmail('reset-password-email'))
+    .map(prop('html'))
+    .chain(email.send('Tabata Reset Password', user.email))
   }
-  const find = (email) => {
-    return db.findOne('User', {email: email})
+  const resetPasswordPage = (token) => {
+    return db.findOne('User', {token: token})
+    .chain(maybeUserToTask)
   }
-
+  const resetPassword = (user) => {
+    return validatePassword(user.verification, user.password)
+    .cata({
+      Success: (password) => db.findById('User', user._id),
+      Failure: (error) => Task.rejected(error)
+    })
+    .chain(maybeUserToTask)
+    .map(user => user.token ? Just(user) : Nothing())
+    .chain(maybeUser => maybeUser.cata({
+      Just: Task.of,
+      Nothing: () => Task.rejected({status: 401})
+    }))
+    .chain(savedUser => hash('password', {password: user.password})
+      .map(({password}) => Object.assign({}, savedUser._doc, {
+        token: null,
+        password: password,
+        verified: false
+      }))
+    )
+    .map(debug)
+    .chain(user => db.updateById('User', user, user._id))
+    .chain(maybeUserToTask)
+    .map(assoc('url', 'http://localhost:3000/v1/user/confirm/'))
+    .chain(email.renderEmail('confirmation-email'))
+    .map(prop('html'))
+    .chain(sendConfirmationEMail(db, email, user.email))
+  }
   return {
-    registration,
-    confirmation,
     serialize,
     deserialize,
     authenticate,
+    registration,
+    confirmation,
+    sendResetPasswordEmail,
+    resetPasswordPage,
+    resetPassword,
   }
 }
 

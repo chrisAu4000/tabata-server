@@ -48,7 +48,7 @@ const main = Task.of(interfaces)
   .ap(db.connect(mongoose, 'mongodb://localhost:27017/tabata'))
   .ap(email.connect(config.SENDGRID_API_KEY, 'noreply@tabata.de'))
   .chain(({db, email}) => new Task((rej, res) => {
-    const user = User({db, email, passport})
+    const user = User({db, email})
     passport.serializeUser(user.serialize)
     passport.deserializeUser(user.deserialize)
     passport.use('user-local', user.authenticate)

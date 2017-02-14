@@ -20,7 +20,7 @@ const iface = (db) => {
   const find = curry((model, query) => new Task((rej, res) =>
     db.model(model).find(query).then(compose(res, fromNullable), rej)
   ))
-
+  // findOne :: String -> Query -> Task Error Maybe Doc
   const findOne = curry((model, query) => new Task((rej, res) =>
     db.model(model).findOne(query).then(compose(res, fromNullable), rej)
   ))

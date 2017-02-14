@@ -13,8 +13,7 @@ module.exports = {
       type: String,
       trim: true,
       lowercase: true,
-      required: [true, 'Email is required.'],
-      //match: [/^[\w\.]+@[a-zA-Z_-]+?\.[a-zA-Z]{2,10}$/g, 'Email {VALUE} is not valid.']
+      required: [true, 'Email is required.']
     },
     password: {
       type: String,
@@ -27,6 +26,9 @@ module.exports = {
       type: Boolean,
       required: [true, 'Verified is required'],
       default: false
+    },
+    token: {
+      type: String
     },
     trainings: Array,
   }
