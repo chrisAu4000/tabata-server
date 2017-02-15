@@ -1,12 +1,13 @@
 const Task = require('data.task')
 const Validation = require('data.validation')
+const {Success, Failure} = require('data.validation')
 const {Right, Left} = require('data.either')
 const {Just, Nothing} = require('data.maybe')
 const {curry, prop, compose, assoc} = require('ramda')
-const LocalStrategie = require('passport-local').Strategy
 const {hash, compare} = require('../crypto')
 const {isEqual, match, minLength, maxLength, taskFromValidation} = require('../validation')
 const validationError = require('../error/validationError')
+const notFoundError = require('../error/notFoundError')
 const emailError = require('../error/emailError')
 
 const emailRegEx = /^[\w\.]+@[a-zA-Z_-]+?\.[a-zA-Z]{2,10}$/g
@@ -38,16 +39,6 @@ const validUser = ({name, email, password, verification}) =>
   .ap(validateEmail(email))
   .ap(validatePassword(verification, password))
 
-const prepareToRender = curry((replyUrl, user) => {
-  return {
-    url: replyUrl,
-    user: {
-      _id: user._id,
-      name: user.name,
-    }
-  }
-})
-
 const sendConfirmationEMail = curry((db, email, userEmail, template) =>
   email.send('Tabata Confirmation', userEmail, template)
   .orElse((error) =>
@@ -55,18 +46,11 @@ const sendConfirmationEMail = curry((db, email, userEmail, template) =>
       .chain((user) => Task.rejected(error)))
 )
 
-const debug = function(x) {
-  console.log(x)
-  return x
-}
-const userNotFoundError = {
-  name: 'Not-Found',
-  message: ['Can not find user.']
-}
 const maybeUserToTask = maybeUser => maybeUser.cata({
   Just: Task.of,
-  Nothing: () => Task.rejected(userNotFoundError)
+  Nothing: () => Task.rejected(notFoundError('Can not find user.'))
 })
+
 const comparePasswords = curry((password, user) =>
   compare(password, user.password)
     .chain(res => res.cata({
@@ -74,43 +58,52 @@ const comparePasswords = curry((password, user) =>
       Left: () => Task.rejected('Incorrect password.')
     }))
 )
+
 const isVerified = (user) =>
   user.verified === true
-  ? Right(user)
-  : Left('User is not verified.')
+  ? Success(user)
+  : Failure('User is not verified.')
 
 const User = ({db, email}) => {
   // AUTHENTIFICATION MIDDLEWARE
-  const serialize = (user, done) => {
-    done(null, user._id)
-  }
+  const serialize = (user, done) => done(null, user._id)
   const deserialize = (id, done) => {
     return db.findById('User', id)
-      .fork(done, maybeUser => maybeUser
-        .cata({
-          Just: (user) => done(null, user),
-          Nothing: ()  => done(null, null)
-        })
-      )
+    .fork(done, maybeUser => maybeUser.cata({
+      Just: (user) => done(null, user),
+      Nothing: ()  => done(null, null)
+    }))
   }
-  const authenticate = new LocalStrategie({
-    usernameField: 'email'
-    }, (email, password, done) =>
-      db.findOne('User', {email: email})
-      .chain(maybeUser => maybeUser.cata({
-        Just: compose(Task.of, isVerified),
-        Nothing: () => Task.rejected('Incorrect username.')
-      }))
-      .chain(isVerified => isVerified.cata({
-        Right: comparePasswords(password),
-        Left: () => Task.rejected('E-Mail is not verified.')
-      }))
-      .fork(
-        (error) => done(null, false, {message: error}),
-        (user) => done(null, user)
-      )
-  )
-  // REGISTRATION
+  const authenticate = (email, password, done) =>
+    db.findOne('User', {email: email})
+    .chain(maybeUser => maybeUser.cata({
+      Just: compose(Task.of, isVerified),
+      Nothing: () => Task.rejected('Incorrect username.')
+    }))
+    .chain(isVerified => isVerified.cata({
+      Success: comparePasswords(password),
+      Failure: () => Task.rejected('E-Mail is not verified.')
+    }))
+    .fork(
+      (error) => done(null, false, {message: error}),
+      (user) => done(null, user)
+    )
+  // )
+
+  /**
+   * Writes a valid user into a database where email must be unique.
+   * @Side-Effect:
+   *    Writing to database
+   *    Reading from filesystem
+   *    Sending an E-Mail
+   * @param {Object} user - {
+   *  {String} name,
+   *  {String} email,
+   *  {String} password,
+   *  {String} verification
+   * }
+   * @return {Task} Array({String} Error) User
+   */
   const registration = (user) => {
     return taskFromValidation(validUser(user))
     .chain(hash('password'))
@@ -120,10 +113,28 @@ const User = ({db, email}) => {
     .map(prop('html'))
     .chain(sendConfirmationEMail(db, email, user.email))
   }
+  /**
+   * Sets a users verified property to true.
+   * @Side-Effect:
+   *    Writing to database
+   * @param {String} id - the user id.
+   * @return {Task} NotFoundError User
+   */
   const confirmation = (id) => {
     return db.updateById('User', {verified: true}, id)
     .chain(maybeUserToTask)
   }
+  /**
+   * Sets a token on which the user can reset the password and sends an E-Mail.
+   * @Side-Effect:
+   *    Writing to database
+   *    Reading from filesystem
+   *    Sending an E-Mail
+   * @param {Object} user - {
+   *  {String} email,
+   * }
+   * @return {Task} Error User
+   */
   const sendResetPasswordEmail = (user) => {
     return Task.of(curry((token, id) => Object.assign({}, token, {id: id})))
     .ap(hash('token', {token: user.email}))
@@ -142,6 +153,19 @@ const User = ({db, email}) => {
     return db.findOne('User', {token: token})
     .chain(maybeUserToTask)
   }
+  /**
+   * Updates a users password and sends an email to verify to the user.
+   * @Side-Effect:
+   *    Writing to database
+   *    Reading from filesystem
+   *    Sending an E-Mail
+   * @param {Object} user - {
+   *  {String} _id,
+   *  {String} password,
+   *  {String} verification
+   * }
+   * @return {Task} Error User
+   */
   const resetPassword = (user) => {
     return validatePassword(user.verification, user.password)
     .cata({
@@ -161,7 +185,6 @@ const User = ({db, email}) => {
         verified: false
       }))
     )
-    .map(debug)
     .chain(user => db.updateById('User', user, user._id))
     .chain(maybeUserToTask)
     .map(assoc('url', 'http://localhost:3000/v1/user/confirm/'))

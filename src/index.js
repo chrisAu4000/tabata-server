@@ -1,6 +1,3 @@
-require('babel-register')({
-  plugins: ["babel-plugin-syntax-jsx", "babel-plugin-inferno"]
-})
 const path = require('path')
 const Task = require('data.task')
 const express = require('express')
@@ -12,7 +9,9 @@ const bodyParser = require('body-parser')
 const expressSession = require('express-session')
 const cookieParser = require('cookie-parser')
 const passport = require('passport')
+const LocalStrategie = require('passport-local').Strategy
 const flash = require('connect-flash')
+const exphbs  = require('express-handlebars')
 const routes = require('./app')
 const port = 3000
 const User = require('./app/controller/user-controller')
@@ -22,12 +21,15 @@ const config = require('../config.json')
 
 if (!process.env.PRODUCTION) {
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-  	res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-  	res.header('Access-Control-Allow-Headers', 'Content-Type');
-  	next();
+    res.header('Access-Control-Allow-Origin', '*')
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+    res.header('Access-Control-Allow-Headers', 'Content-Type')
+    next()
   })
 }
+app.engine('handlebars', exphbs());
+app.set('views', path.join(__dirname, '/app/templates/pages'));
+app.set('view engine', 'handlebars');
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(morgan('dev'))
 app.use(bodyParser.urlencoded({extended: false}))
@@ -51,9 +53,10 @@ const main = Task.of(interfaces)
     const user = User({db, email})
     passport.serializeUser(user.serialize)
     passport.deserializeUser(user.deserialize)
-    passport.use('user-local', user.authenticate)
+    passport.use('user-local', new LocalStrategie({
+      usernameField: 'email'
+    }, user.authenticate)
     routes(app, passport, { user: user })
-
     server.listen(port, () => res(`Listen on port: ${port}`))
 }))
 

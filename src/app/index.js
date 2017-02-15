@@ -1,6 +1,7 @@
 const {curry} = require('ramda')
+const path = require('path')
 // const client = require('../../../tabata-frontend/src/App')
-const InvernoServer = require('inferno-server')
+// const InvernoServer = require('inferno-server')
 
 const version = '/v1'
 
@@ -30,6 +31,13 @@ const App = (app, passport, models) => {
         Nothing: sendNotFound(res),
         Just: (user) => res.json(user)
       })
+    })
+  })
+  app.get('/', (req, res) => {
+    return res.render('main', {
+      title: 'Tabata',
+      style: 'style',
+      bundle: 'bundle'
     })
   })
   app.post(version + '/user/register', (req, res) => {

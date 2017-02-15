@@ -12,8 +12,7 @@ const iface = ({key, from}) => {
   const sg = require('sendgrid')(key)
   const helper = require('sendgrid').mail
   const from_email = new helper.Email(from)
-  const templatesDir = path.join(__dirname + '/../', 'app', 'templates')
-
+  const templatesDir = path.join(__dirname + '/../', 'app', 'templates', 'email')
   const send = curry((subject, to, template) => new Task((rej, res) => {
     const to_email = new helper.Email(to)
     const content = new helper.Content("text/html", template)
@@ -23,11 +22,8 @@ const iface = ({key, from}) => {
       path: '/v3/mail/send',
       body: mail.toJSON()
     })
-
     return sg.API(request, function(error, response) {
-      if (error) {
-        return rej(error)
-      }
+      if (error) return rej(error)
       console.log(response.statusCode);
       console.log(response.body);
       console.log(response.headers);
@@ -38,15 +34,11 @@ const iface = ({key, from}) => {
   const renderEmail = curry((templateName, params) => new Task((rej, res) => {
     const templatePath = path.join(templatesDir, templateName)
     const email = new EmailTemplate(templatePath)
-    console.log(params)
     return email.render(params, (error, result) => {
-      if (error) {
-        return rej(error)
-      }
+      if (error) return rej(error)
       return res(result)
     })
   }))
-
   return {send, renderEmail}
 }
 
