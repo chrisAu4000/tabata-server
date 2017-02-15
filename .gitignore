@@ -33,3 +33,4 @@ bower_components/
 build/
 sendgrid.env
 config.json
+coverage
