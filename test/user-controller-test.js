@@ -8,7 +8,7 @@ const Task = require('data.task')
 const {curry} = require('ramda')
 let sendCalled = false
 let renderEmailCalled = false
-
+let shouldReturnMailError = false
 function EmailMock() {
   return {
     renderEmail: curry((template, params) => {
@@ -17,7 +17,9 @@ function EmailMock() {
     }),
     send: curry((subject, to, template) => {
       sendCalled = true
-      return Task.of('Success')
+      return shouldReturnMailError
+        ? Task.rejected('Error')
+        : Task.of('Success')
     })
   }
 }
@@ -136,8 +138,8 @@ describe('User-Controller', function() {
       })
     })
     describe('user has wrong password.', function() {
+      const con = mongoose.connection
       beforeEach(function(done) {
-        const con = mongoose.connection
         con.model('User').create(testUser, function(error, res) {
           if (error) done(error)
           done()
@@ -160,50 +162,7 @@ describe('User-Controller', function() {
       })
     })
   })
-  describe('#confirmation', function() {
-    describe('user not in database', function() {
-      it('should return NotFoundError.', function(done) {
-        user.confirmation(testUser._id).fork(
-          error => {
-            try {
-              assert.strictEqual('Not-Found', error.name),
-              assert.strictEqual('Can not find user.', error.message)
-              done()
-            } catch(error) {
-              done(error)
-            }
-          },
-          user => {
-            assert.deepEqual(null, user)
-            done()
-          }
-        )
-      })
-    })
-    describe('user not in database', function() {
-      beforeEach(function(done) {
-        const con = mongoose.connection
-        con.model('User').create(testUser, function(error, res) {
-          if (error) done(error)
-          done()
-        })
-      })
-      it('should return a verified user.', function(done) {
-        user.confirmation(testUser._id).fork(
-          error => error && done(error),
-          user => {
-            try {
-              assert.equal(testUser._id, user._id)
-              assert.deepEqual(true, user.verified)
-              done()
-            } catch (error) {
-              done(error)
-            }
-          }
-        )
-      })
-    })
-  })
+
   describe('#registration', function() {
     const data = {
       name: 'testuser',
@@ -229,6 +188,25 @@ describe('User-Controller', function() {
           done(err)
         }
       })
+    })
+
+    it('should delete the saved User if sending email failes', function(done) {
+      const con = mongoose.connection
+      shouldReturnMailError = true
+      user.registration(data).fork(
+        error => {
+          con.model('User').find({email: data.email}, function(error, users) {
+            if (error) done(error)
+            assert.strictEqual(0, users.length)
+            shouldReturnMailError = false
+            done()
+          })
+        },
+        user => {
+          shouldReturnMailError = false
+          done()
+        }
+      )
     })
 
     it('should throw an error if two users with same email are created', function(done) {
@@ -279,6 +257,232 @@ describe('User-Controller', function() {
   })
 
   describe('#confirmation', function() {
+    describe('user not in database', function() {
 
+      it('should return NotFoundError.', function(done) {
+        user.confirmation(testUser._id).fork(
+          error => {
+            try {
+              assert.strictEqual('Not-Found', error.name),
+              assert.strictEqual('Can not find user.', error.message)
+              done()
+            } catch(error) {
+              done(error)
+            }
+          },
+          user => {
+            assert.deepEqual(null, user)
+            done()
+          }
+        )
+      })
+
+    })
+
+    describe('user in database', function() {
+      beforeEach(function(done) {
+        const con = mongoose.connection
+        con.model('User').create(testUser, function(error, res) {
+          if (error) done(error)
+          done()
+        })
+      })
+
+      it('should return a verified user.', function(done) {
+        user.confirmation(testUser._id).fork(
+          error => error && done(error),
+          user => {
+            try {
+              assert.equal(testUser._id, user._id)
+              assert.deepEqual(true, user.verified)
+              done()
+            } catch (error) {
+              done(error)
+            }
+          }
+        )
+      })
+    })
+  })
+  describe('#sendResetPasswordEmail', function() {
+    describe('user not in database', function() {
+      it('should return NotFoundError', function(done) {
+        user.sendResetPasswordEmail(testUser).fork(
+          error => {
+            try {
+              assert.strictEqual('Not-Found', error.name)
+              assert.strictEqual('Can not find user.', error.message)
+              done()
+            } catch(error) {
+              done(error)
+            }
+          },
+          res => {
+            try {
+              assert.strictEqual(null, res)
+              done()
+            } catch (error) {
+              done(error)
+            }
+          }
+        )
+      })
+    })
+
+    describe('user in database', function() {
+      const con = mongoose.connection
+      beforeEach(function(done) {
+        con.model('User').create(testUser, function(error, res) {
+          if (error) done(error)
+          done()
+        })
+      })
+
+      it('should send an email.', function(done) {
+        user.sendResetPasswordEmail(testUser).fork(
+          error => error && done(error),
+          res => {
+            try {
+              assert.strictEqual(true, renderEmailCalled)
+              assert.strictEqual(true, sendCalled)
+              done()
+            } catch(error) {
+              done(error)
+            }
+          }
+        )
+      })
+      it('should update the user token', function(done) {
+        user.sendResetPasswordEmail(testUser).fork(
+          error => error && done(error),
+          res => {
+            con.model('User').findById(testUser._id, function(error, user) {
+              try {
+                assert.notEqual(null, user.token)
+                done()
+              } catch(error) {
+                done(error)
+              }
+            })
+          }
+        )
+      })
+    })
+  })
+
+  describe('#resetPassword', function() {
+    describe('user not in database', function() {
+      const data = {
+        _id: '58a3730d78c045c18607d489',
+        password: 't3stPassw0rd',
+        verification: 't3stPassw0rd'
+      }
+      it ('should return NotFoundError', function(done) {
+        user.resetPassword(data).fork(
+          error => {
+            try {
+              assert.strictEqual('Not-Found', error.name)
+              assert.strictEqual('Can not find user.', error.message)
+              done()
+            } catch(error) {
+              done(error)
+            }
+          },
+          res => {
+            assert.strictEqual(null, res)
+            done()
+          }
+        )
+      })
+    })
+    describe('user in database', function() {
+      const con = mongoose.connection
+      const data = {
+        _id: '58a3730d78c045c18607d489',
+        password: 't3stPassw0rd',
+        verification: 't3stPassw0rd'
+      }
+      describe('user without token', function() {
+        beforeEach(function(done) {
+          con.model('User').create(testUser, function(error, res) {
+            if (error) done(error)
+            done()
+          })
+        })
+        it ('should return status 401', function(done) {
+          user.resetPassword(data).fork(
+            error => {
+              try {
+                assert.deepEqual({status: 401}, error)
+                done()
+              } catch(error) {
+                done(error)
+              }
+            },
+            res => {
+              assert.strictEqual(null, res)
+              done()
+            }
+          )
+        })
+      })
+      describe('user with token.', function() {
+        beforeEach(function(done) {
+          con.model('User').create(Object.assign({}, testUser, {
+              token: '$2a$10$.OXYZ7LQHYGXZkAqgO6HieieAOePtG3h/iNRmK9rE/1.HtNQgaFxO'
+            }),
+            function(error, res) {
+            if (error) done(error)
+            done()
+          })
+        })
+        it ('should return status 401', function(done) {
+          const data = {
+            _id: '58a3730d78c045c18607d489',
+            password: 't3stPassw0rd',
+            verification: 't3stPassw0rds'
+          }
+          user.resetPassword(data).fork(
+            error => {
+              try {
+                assert.deepEqual([
+                  'Password and verification must be equal.'
+                ], error)
+                done()
+              } catch(error) {
+                done(error)
+              }
+            },
+            res => {
+              assert.strictEqual(null, res)
+              done()
+            }
+          )
+        })
+        it('should update a user in database', function(done) {
+          const data = {
+            _id: '58a3730d78c045c18607d489',
+            password: 't3stPassw0rd',
+            verification: 't3stPassw0rd'
+          }
+          user.resetPassword(data).fork(
+            error => error && done(error),
+            res => {
+              try {
+                con.model('User').findById(testUser._id, function(error, user) {
+                  if (error) done(error)
+                  assert.strictEqual(false, user.verified)
+                  assert.strictEqual(null, user.token)
+                  assert.notEqual(testUser.password, user.password)
+                })
+                done()
+              } catch(error) {
+                done(error)
+              }
+            }
+          )
+        })
+      })
+    })
   })
 })
