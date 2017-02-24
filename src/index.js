@@ -55,7 +55,7 @@ const main = Task.of(interfaces)
     passport.deserializeUser(user.deserialize)
     passport.use('user-local', new LocalStrategie({
       usernameField: 'email'
-    }, user.authenticate)
+    }, user.authenticate))
     routes(app, passport, { user: user })
     server.listen(port, () => res(`Listen on port: ${port}`))
 }))
