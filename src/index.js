@@ -12,6 +12,7 @@ const passport = require('passport')
 const LocalStrategie = require('passport-local').Strategy
 const flash = require('connect-flash')
 const exphbs  = require('express-handlebars')
+const MongoStore = require('connect-mongo')(expressSession)
 const routes = require('./app')
 const port = 3000
 const User = require('./app/controller/user-controller')
@@ -35,21 +36,28 @@ app.use(morgan('dev'))
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
 app.use(cookieParser())
-app.use(expressSession({
-  secret: 'development',
-  resave: false,
-  saveUninitialized: false
-}))
-app.use(passport.initialize())
-app.use(passport.session())
-app.use(flash())
 
 const interfaces = db => email => ({db, email})
 
 const main = Task.of(interfaces)
   .ap(db.connect(mongoose, 'mongodb://localhost:27017/tabata'))
   .ap(email.connect(config.SENDGRID_API_KEY, 'noreply@tabata.de'))
+  .chain(({db, email}) =>
+    db.createConnection(null, 'mongodb://localhost:27017/session')
+      .map(connection => {
+        app.use(expressSession({
+          secret: 'development',
+          store: new MongoStore({ mongooseConnection: connection }),
+          resave: false,
+          saveUninitialized: false
+        }))
+        app.use(passport.initialize())
+        app.use(passport.session())
+        return {db, email}
+      })
+  )
   .chain(({db, email}) => new Task((rej, res) => {
+
     const user = User({db, email})
     passport.serializeUser(user.serialize)
     passport.deserializeUser(user.deserialize)

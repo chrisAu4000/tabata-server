@@ -5,6 +5,15 @@ const ValidationError = require('../app/error/validationError')
 const models = require('./models')
 
 const iface = (db) => {
+  const createConnection = curry((options, uri) => new Task((rej, res) => {
+    let connection = undefined;
+    try {
+      connection = db.createConnection(uri, options)
+      res(connection)
+    } catch(err) {
+      rej(err)
+    }
+  }))
   const create = curry((model, data) => new Task((rej, res) =>
     db.model(model).create(data).then(res, rej)
   ))
@@ -41,6 +50,7 @@ const iface = (db) => {
   ))
 
   return {
+    createConnection,
     create,
     createUnique,
     find,
