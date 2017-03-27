@@ -17,6 +17,12 @@ module.exports = describe('Validation', [
     }),
     it('should return a Failure if testvalues are not equal.', () => {
       return equals(isEqual('MESSAGE', 'est', 'test'), Failure(['MESSAGE']))
+    }),
+    it('should return a Failure if first value is falsy.', () => {
+      return equals(isEqual('MESSAGE', undefined, 'test'), Failure(['MESSAGE']))
+    }),
+    it('should return a Failure if second value is falsy.', () => {
+      return equals(isEqual('MESSAGE', 'test', undefined), Failure(['MESSAGE']))
     })
   ]),
   given('#minLength', [
@@ -25,6 +31,12 @@ module.exports = describe('Validation', [
     }),
     it('should return a Failure if values length is less then param.', () => {
       return equals(minLength(4, 'MESSAGE', '123'), Failure(['MESSAGE']))
+    }),
+    it('should return a Failure if test value is falsy.', () => {
+      return equals(minLength(4, 'MESSAGE', undefined), Failure(['MESSAGE']))
+    }),
+    it('should return a Failure if test value is falsy.', () => {
+      return equals(minLength(4, 'MESSAGE', null), Failure(['MESSAGE']))
     })
   ]),
   given('#maxLength', [
@@ -33,6 +45,9 @@ module.exports = describe('Validation', [
     }),
     it('should return a Failure if the length of value is greater then param.', () => {
       return equals(maxLength(4, 'MESSAGE', '12345'), Failure(['MESSAGE']))
+    }),
+    it('should return a Failure if test value is falsy.', () => {
+      return equals(maxLength(4, 'MESSAGE', undefined), Failure(['MESSAGE']))
     })
   ]),
   given('#match', [
@@ -41,6 +56,9 @@ module.exports = describe('Validation', [
     }),
     it('should return a Failure if a value does not match a regexp.', () => {
       return equals(match(onlyLetters, 'MESSAGE', 'Le7ters'), Failure(['MESSAGE']))
+    }),
+    it('should return a Failure if test value is falsy.', () => {
+      return equals(match(onlyLetters, 'MESSAGE', undefined), Failure(['MESSAGE']))
     })
   ])
 ])
