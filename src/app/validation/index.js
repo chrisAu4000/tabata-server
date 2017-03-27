@@ -8,11 +8,13 @@ const isEqual = curry((message, a, b) => {
     : Failure([message])
 })
 
-const match = curry((regEx, message, value) => {
-  return value.match(regEx)
+const match = curry((regEx, message, value) =>
+  value
+    && typeof value.match === 'function'
+    && value.match(regEx)
     ? Success(value)
     : Failure([message])
-})
+)
 
 const minLength = curry((length, message, value) =>
   value
@@ -23,7 +25,9 @@ const minLength = curry((length, message, value) =>
 )
 
 const maxLength = curry((length, message, value) =>
-  value.length < length
+  value
+    && typeof value.length === 'number'
+    && value.length < length
     ? Success(value)
     : Failure([message])
 )
