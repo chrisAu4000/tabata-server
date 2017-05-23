@@ -59,8 +59,28 @@ const connect = (driver, url) => new Task((rej, res) => {
   models
     .forEach(initializeModel(driver))
   driver
-    .connect(url, (err) => err ? rej([err]) : undefined)
-    .connection.once('open', () => res(iface(driver)))
+    .connect(url)
+	
+	driver.connection.once('open', () => res(iface(driver)))
+	driver.connection.on('error', (e) => {
+		return rej([{
+			name: 'DatabaseError',
+			message:'Cannot connect to mongodb'
+		}])
+	})
+	driver.connection.on('disconnected', () => {
+		return rej([{
+			name: 'DatabaseError',
+			message: 'Lost database connection'
+		}])
+	})
+	// If the Node process ends, close the Mongoose connection 
+	process.on('SIGINT', () => {  
+		driver.connection.close(() => { 
+			console.log('Mongoose default connection disconnected through app termination'); 
+			process.exit(0); 
+		}); 
+	}); 
 })
 
 
