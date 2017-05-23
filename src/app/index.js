@@ -19,26 +19,13 @@ const authenticationMiddleware = () => (req, res, next) => {
 
 const App = (app, passport, models) => {
   const user = models.user
-
-  // app.get(version + '/', (req, res) => {
-  //   const html = InvernoServer.renderToString(client)
-  //   return res.send(html)
-  // })
-
+	console.log(models)
   app.get(version + '/user/:email', (req, res) => {
-    return user.find(req.params.email).fork(sendError(res), maybe => {
-      return maybe.cata({
-        Nothing: sendNotFound(res),
-        Just: (user) => res.json(user)
-      })
-    })
-  })
-  app.get('/', (req, res) => {
-    return res.render('main', {
-      title: 'Tabata',
-      style: 'style',
-      bundle: 'bundle'
-    })
+    return user.find(req.params.email)
+			.fork(sendError(res), maybe => maybe.cata({
+        	Nothing: sendNotFound(res),
+        	Just: (user) => res.json(user)
+      	}))
   })
   app.post(version + '/user/register', (req, res) => {
     return user.registration(req.body).fork(

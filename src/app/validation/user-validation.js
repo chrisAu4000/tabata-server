@@ -1,6 +1,6 @@
 const Validation = require('data.validation')
 const { curry, curryN, identity } = require('ramda')
-const {isEqual, match, minLength, maxLength, taskFromValidation} = require('./index')
+const {isEqualString, match, minLength, maxLength, taskFromValidation} = require('./index')
 const emailRegEx = /^[\w\.]+@[a-zA-Z_-]+?\.[a-zA-Z]{1,10}$/g
 const passwordRegEx = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).*/g
 
@@ -8,7 +8,7 @@ const user = curry((name, email, password) => ({name, email, password}))
 
 const validatePassword = (verification, password) =>
   Validation.of(curryN(4, identity))
-  .ap(isEqual('Password and verification must be equal.', verification, password))
+  .ap(isEqualString('Password and verification must be equal.', verification, password))
   .ap(minLength(8, 'Password must be longer than 8 characters.', password))
   .ap(maxLength(40, 'Password should not be longer than 40 characters.', password))
   .ap(match(passwordRegEx, 'Password of invalid format.', password))

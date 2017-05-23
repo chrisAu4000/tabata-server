@@ -2,7 +2,7 @@ const { describe, given, it, equals } = require('45')
 const {Success, Failure} = require('data.validation')
 const {
   match,
-  isEqual,
+  isEqualString,
   minLength,
   maxLength
 } = require('../src/app/validation')
@@ -10,55 +10,55 @@ const onlyLetters = /^[a-zA-Z]+$/
 module.exports = describe('Validation', [
   given('#isEqual', [
     it('should return a Success if testvalues are equal.', () => {
-      return equals(isEqual('TEST MESSAGE', 'test', 'test'), Success('test'))
+      return equals(Success('test'), isEqualString('TEST MESSAGE', 'test', 'test'))
     }),
     it('should return a Failure if testvalues are not equal.', () => {
-      return equals(isEqual('MESSAGE', 'test', 'est'), Failure(['MESSAGE']))
+      return equals(Failure(['MESSAGE']), isEqualString('MESSAGE', 'test', 'est'))
     }),
     it('should return a Failure if testvalues are not equal.', () => {
-      return equals(isEqual('MESSAGE', 'est', 'test'), Failure(['MESSAGE']))
+      return equals(Failure(['MESSAGE']), isEqualString('MESSAGE', 'est', 'test'))
     }),
     it('should return a Failure if first value is falsy.', () => {
-      return equals(isEqual('MESSAGE', undefined, 'test'), Failure(['MESSAGE']))
+      return equals(Failure(['undefined is not a string']), isEqualString('MESSAGE', undefined, 'test'))
     }),
     it('should return a Failure if second value is falsy.', () => {
-      return equals(isEqual('MESSAGE', 'test', undefined), Failure(['MESSAGE']))
+      return equals(Failure(['undefined is not a string']), isEqualString('MESSAGE', 'test', undefined))
     })
   ]),
   given('#minLength', [
     it('should return a Success if values length is greater then or equal param.', () => {
-      return equals(minLength(4, 'MESSAGE', '1234'), Success('1234'))
+      return equals(Success('1234'), minLength(4, 'MESSAGE', '1234'))
     }),
     it('should return a Failure if values length is less then param.', () => {
-      return equals(minLength(4, 'MESSAGE', '123'), Failure(['MESSAGE']))
+      return equals(Failure(['MESSAGE']), minLength(4, 'MESSAGE', '123'))
     }),
     it('should return a Failure if test value is falsy.', () => {
-      return equals(minLength(4, 'MESSAGE', undefined), Failure(['MESSAGE']))
+      return equals(Failure(['MESSAGE']), minLength(4, 'MESSAGE', undefined))
     }),
     it('should return a Failure if test value is falsy.', () => {
-      return equals(minLength(4, 'MESSAGE', null), Failure(['MESSAGE']))
+      return equals(Failure(['MESSAGE']), minLength(4, 'MESSAGE', null))
     })
   ]),
   given('#maxLength', [
     it('should return a Success if values length is less then param.', () => {
-      return equals(maxLength(4, 'MESSAGE', '123'), Success('123'))
+      return equals(Success('123'), maxLength(4, 'MESSAGE', '123'))
     }),
     it('should return a Failure if the length of value is greater then param.', () => {
-      return equals(maxLength(4, 'MESSAGE', '12345'), Failure(['MESSAGE']))
+      return equals(Failure(['MESSAGE']), maxLength(4, 'MESSAGE', '12345'))
     }),
     it('should return a Failure if test value is falsy.', () => {
-      return equals(maxLength(4, 'MESSAGE', undefined), Failure(['MESSAGE']))
+      return equals(Failure(['MESSAGE']), maxLength(4, 'MESSAGE', undefined))
     })
   ]),
   given('#match', [
     it('should return a Success if a value matches a regexp.', () => {
-      return equals(match(onlyLetters, 'MESSAGE', 'Letters'), Success('Letters'))
+      return equals(Success('Letters'), match(onlyLetters, 'MESSAGE', 'Letters'))
     }),
     it('should return a Failure if a value does not match a regexp.', () => {
-      return equals(match(onlyLetters, 'MESSAGE', 'Le7ters'), Failure(['MESSAGE']))
+      return equals(Failure(['MESSAGE']), match(onlyLetters, 'MESSAGE', 'Le7ters'))
     }),
     it('should return a Failure if test value is falsy.', () => {
-      return equals(match(onlyLetters, 'MESSAGE', undefined), Failure(['MESSAGE']))
+      return equals(Failure(['Can not match undefined']), match(onlyLetters, 'MESSAGE', undefined))
     })
   ])
 ])

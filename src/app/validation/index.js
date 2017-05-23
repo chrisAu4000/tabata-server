@@ -1,19 +1,55 @@
-const {curry} = require('ramda')
-const {Success, Failure} = require('data.validation')
+const {curry, curryN, identity} = require('ramda')
+const Validation = require('data.validation')
+const {Success, Failure} = Validation
 const Task = require('data.task')
+const Maybe = require('data.maybe')
 
-const isEqual = curry((message, a, b) => {
-  return a === b
+const isSetoid =
+  a => typeof a.equals === 'function'
+    ? Success(a)
+    : Failure([a + ' is not a setoid'])
+
+const isType = curry((message, type, a) =>
+  typeof a === type
+    ? Success(a)
+    : Failure([message(a)])
+)
+
+const isString = isType((a) => a + ' is not a string', 'string')
+
+const isFunction = curry((message, f, a) =>
+  a && typeof a[f] === 'function'
+    ? Success(a)
+    : Failure([message(a)])
+)
+
+const hasMatch = isFunction((a) => 'Can not match ' + a, 'match')
+
+const isEqual = curry((message, a, b) =>
+  a === b
     ? Success(b)
     : Failure([message])
-})
+)
+
+const isEqualString = curry((message, a, b) =>
+  Validation
+    .of(curryN(2, (a, b) => b))
+    .ap(isString(a))
+    .ap(isString(b))
+    .cata({
+      Failure: Failure,
+      Success: isEqual(message, a)
+    })
+)
 
 const match = curry((regEx, message, value) =>
-  value
-    && typeof value.match === 'function'
-    && value.match(regEx)
-    ? Success(value)
-    : Failure([message])
+  hasMatch(value)
+    .cata({
+      Failure: Failure,
+      Success: val => val.match(regEx)
+        ? Success(value)
+        : Failure([message])
+    })
 )
 
 const minLength = curry((length, message, value) =>
@@ -38,4 +74,4 @@ const taskFromValidation = (validation) => new Task((rej, res) => {
     : res(validation.get())
 })
 
-module.exports = {isEqual, match, minLength, maxLength, taskFromValidation}
+module.exports = {isEqualString, match, minLength, maxLength, taskFromValidation}
