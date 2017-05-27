@@ -1,11 +1,9 @@
-const {curry} = require('ramda')
+function ValidationError(msg) {
+	this.status = 400
+	this.name = 'ValidationError'
+	this.message = msg
+}
 
-const ValidationError = curry((key, message) => {
-  return {
-    name: 'ValidationError',
-    key: key,
-    message: message,
-  }
-})
+Object.setPrototypeOf(ValidationError, Error.prototype)
 
 module.exports = ValidationError

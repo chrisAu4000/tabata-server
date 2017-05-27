@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon --ignore src/app/client --ignore test/ --debug src/index.js",
-    "test": "./node_modules/.bin/45 test/*.spec.js"
+    "test": "./node_modules/.bin/mocha -w \"test/**/*.spec.js\""
   },
   "repository": {
     "type": "git",
@@ -34,8 +34,10 @@
     "email-templates": "^2.5.4",
     "express": "^4.14.0",
     "express-handlebars": "^3.0.0",
+    "express-jwt": "^5.3.0",
     "express-session": "^1.15.0",
     "handlebars": "^4.0.6",
+    "jsonwebtoken": "^7.4.1",
     "mongoose": "^4.7.7",
     "morgan": "^1.7.0",
     "passport": "^0.3.2",
@@ -45,6 +47,8 @@
   },
   "devDependencies": {
     "chai": "^3.5.0",
+    "chai-http": "^3.0.0",
+    "faucet": "0.0.1",
     "istanbul": "^0.4.5",
     "mocha": "^3.2.0",
     "mockgoose": "^6.0.8",

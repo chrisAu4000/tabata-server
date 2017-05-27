@@ -1,6 +1,9 @@
-const notFoundError = message => ({
-  name: 'Not-Found',
-  message: message
-})
+function NotFoundError(message) {
+	this.status = 404
+  this.name = 'NotFoundError'
+  this.message = message
+}
 
-module.exports = notFoundError
+Object.setPrototypeOf(NotFoundError, Error.prototype)
+
+module.exports = NotFoundError

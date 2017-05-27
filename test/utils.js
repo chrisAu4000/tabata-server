@@ -10,4 +10,13 @@ const streamWrapper = (task) => {
   })
 }
 
-module.exports = { streamWrapper }
+const connectDb = function(db) { 
+	return new Promise((res, rej) => 
+		connect(mongoose, 'mongodb://localhost:27017/tabata')
+			.fork(rej.bind(this), function(_db) {
+				db = _db
+				res.call(this, db)
+			})
+	)
+}
+module.exports = { connectDb }

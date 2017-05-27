@@ -6,6 +6,10 @@ const mockgoose = require('mockgoose')
 const {connect} = require('../src/database')
 const Task = require('data.task')
 const {curry} = require('ramda')
+const ValidationError = require('../src/app/error/ValidationError')
+const NotFoundError = require('../src/app/error/NotFoundError')
+const UnauthorizedError = require('../src/app/error/UnauthorizedError')
+
 let sendCalled = false
 let renderEmailCalled = false
 let shouldReturnMailError = false
@@ -99,12 +103,12 @@ describe('User-Controller', function() {
   })
   describe('#authenticate', function() {
     describe('no user found', function() {
-      it('should return an error message: Incorrect username.', function(done) {
-        user.authenticate('email', 'password', function(error, res, msg) {
+      it('should return an error message.', function(done) {
+        user.authenticate('wrong-email', 'password', function(error, res, msg) {
           if (error) done(error)
           try {
             assert.strictEqual(false, res)
-            assert.strictEqual('Incorrect username.', msg.message)
+            assert.strictEqual('Cannot find user with query: {"email":"wrong-email"}', msg.message)
             done()
           } catch (error) {
             done(error)
@@ -213,11 +217,10 @@ describe('User-Controller', function() {
       user.registration(data).fork(assert.isNull, function(doc) {
         user.registration(data).fork(function(error) {
           try {
-            assert.deepEqual(error, {
-              name: 'ValidationError',
-              key: 'email',
-              message: 'unique key email already exists.',
-            })
+            assert.deepEqual(
+							new ValidationError(`unique key email already exists.`), 
+							error
+						)
             done()
           } catch(error) {
             done(error)
@@ -263,8 +266,8 @@ describe('User-Controller', function() {
         user.confirmation(testUser._id).fork(
           error => {
             try {
-              assert.strictEqual('Not-Found', error.name),
-              assert.strictEqual('Can not find user.', error.message)
+							const expected = new NotFoundError('Cannot find document with _id: ' + testUser._id)
+              assert.deepEqual(expected, error),
               done()
             } catch(error) {
               done(error)
@@ -310,8 +313,8 @@ describe('User-Controller', function() {
         user.sendResetPasswordEmail(testUser).fork(
           error => {
             try {
-              assert.strictEqual('Not-Found', error.name)
-              assert.strictEqual('Can not find user.', error.message)
+							const expected = new NotFoundError('Cannot find user with query: {\"email\":\"test@test.com\"}')
+              assert.deepEqual(expected, error)
               done()
             } catch(error) {
               done(error)
@@ -381,8 +384,8 @@ describe('User-Controller', function() {
         user.resetPassword(data).fork(
           error => {
             try {
-              assert.strictEqual('Not-Found', error.name)
-              assert.strictEqual('Can not find user.', error.message)
+							const expected = new NotFoundError('Cannot find document with _id: ' + data._id)
+              assert.deepEqual(expected, error)
               done()
             } catch(error) {
               done(error)
@@ -413,7 +416,8 @@ describe('User-Controller', function() {
           user.resetPassword(data).fork(
             error => {
               try {
-                assert.deepEqual({status: 401}, error)
+								const expected = new UnauthorizedError('Not allowed to reset password')
+                assert.deepEqual(expected, error)
                 done()
               } catch(error) {
                 done(error)
@@ -445,9 +449,8 @@ describe('User-Controller', function() {
           user.resetPassword(data).fork(
             error => {
               try {
-                assert.deepEqual([
-                  'Password and verification must be equal.'
-                ], error)
+								const expected = [new ValidationError('Password and verification must be equal.')]
+                assert.deepEqual(expected, error)
                 done()
               } catch(error) {
                 done(error)
